@@ -242,7 +242,7 @@ def GetSharesOwned(ticker):
 def GetSharesBuyable(price):
     # 2. Get account balance
     account_info = ib.accountSummary()
-    available_funds = float(account_info.loc['AvailableFunds', 'value'] * 0.5)  # Use 50% of available funds
+    available_funds = float(account_info.loc['AvailableFunds', 'value'] * 0.0005)  # Use 50% of available funds
 
     # 4. Calculate max shares (accounting for commissions)
     max_shares = int(available_funds // price)
@@ -284,4 +284,6 @@ def print_holdings():
 
         print(f"{contract.symbol}: {position} shares @ avg cost ${avg_cost:.2f}")
 
+print("TESTING!!!!")
+Buy("TSLA")
 # Example usage
