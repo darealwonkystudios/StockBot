@@ -1,6 +1,6 @@
 #4002 for paper, 4001 for live.
 
-from ib_insync import IB, Stock, MarketOrder, LimitOrder, StopOrder, st
+from ib_insync import IB, Stock, MarketOrder, LimitOrder, StopOrder
 
 ib = IB()
 # Given a ticker symbol, buy the stock at market price
