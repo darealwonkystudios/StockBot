@@ -284,8 +284,11 @@ def print_holdings():
 
         print(f"{contract.symbol}: {position} shares @ avg cost ${avg_cost:.2f}")
 
+print("TESTING!!!!")
+
 Start(live=False)
 
-print("TESTING!!!!")
+print("TESTING32!!!!")
+
 Buy("TSLA")
 # Example usage
