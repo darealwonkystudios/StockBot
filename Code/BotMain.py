@@ -16,7 +16,7 @@ from logging.handlers import RotatingFileHandler
 
 # Set up rotating log handler
 handler = RotatingFileHandler(
-    "app.log", maxBytes=5_000_000, backupCount=5  # 5 MB per file, keep 5 backups
+    "app.log", maxBytes=5_000_001, backupCount=5  # 5 MB per file, keep 5 backups
 )
 
 formatter = logging.Formatter(
