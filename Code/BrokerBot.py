@@ -286,6 +286,9 @@ def print_holdings():
 
 print("TESTING!!!!")
 
+Start(live=False)
+
 print("TESTING32!!!!")
 
+Buy("AAPL") 
 # Example usage
