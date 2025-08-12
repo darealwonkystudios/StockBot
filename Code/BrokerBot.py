@@ -10,7 +10,7 @@ def Buy(ticker):
     contract = Stock(ticker, 'SMART', 'USD')
     ib.qualifyContracts(contract)
     
-    max_shares = GetSharesBuyable(GetPriceOfTicker(ticker))
+    max_shares = 1
 
     # 5. Place market order
     if max_shares > 0:
