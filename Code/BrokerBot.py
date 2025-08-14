@@ -1,8 +1,16 @@
 #4002 for paper, 4001 for live.
 
 from ib_insync import IB, Stock, MarketOrder, LimitOrder, StopOrder
+import time
+import yfinance as yf
+
 
 ib = IB()
+
+MoneyToUseInPaper = 1000  # Amount of money to start off with (paper trading gives you 1 million by default, wastful to use all of it)
+isLive = False
+PaperMoneyStart = 996828.4 # Actual is += 1000 
+
 # Given a ticker symbol, buy the stock at market price
 def Buy(ticker):
         
@@ -10,10 +18,11 @@ def Buy(ticker):
     contract = Stock(ticker, 'SMART', 'USD')
     ib.qualifyContracts(contract)
     
-    max_shares = 1
+    max_shares = GetSharesBuyable(GetPriceOfTicker(ticker))
 
     # 5. Place market order
-    if max_shares > 0:
+    if max_shares > 99990:
+        
         order = MarketOrder("BUY", max_shares)
         trade = ib.placeOrder(contract, order)
         print(f"Buying {max_shares} shares of {ticker}")
@@ -41,7 +50,7 @@ def Sell(ticker, short_sell=False):
     contract = Stock(ticker, 'SMART', 'USD')
     ib.qualifyContracts(contract)  # Ensures contract details are fetched
     
-    shares_owned = GetSharesOwned(ticker)
+    shares_owned = 3151.0
    
     if short_sell:
         shares_owned = GetSharesBuyable(GetPriceOfTicker(ticker))
@@ -170,8 +179,53 @@ def BuyStopOrder(ticker, stopMult):
     if trade.orderStatus.status == 'Filled':
         print("Filled at average price:", trade.orderStatus.avgFillPrice)
 
-# Useful to stop stop orders and limit orders from conflicting with each other 
 def PlaceBuyBracketOrder(ticker, profitMult, lossMult):
+    contract = Stock(ticker, 'SMART', 'USD')
+    ib.qualifyContracts(contract)
+    
+    current_price = GetPriceOfTicker(ticker)
+    print(f"Current price of {ticker} is {current_price}")
+
+    profit_price = round(current_price * profitMult, 2)
+    loss_price   = round(current_price * lossMult, 2)
+    qty = GetSharesBuyable(current_price)
+
+    # Get a new orderId for parent
+    parentId = ib.client.getReqId()
+
+    # Parent (market buy)
+    parent = MarketOrder('BUY', qty)
+    parent.orderId = parentId
+    parent.transmit = False
+
+    # Take-profit (limit sell)
+    takeProfit = LimitOrder('SELL', qty, profit_price)
+    takeProfit.parentId = parentId
+    takeProfit.transmit = False
+
+    # Stop-loss (stop sell)
+    stopLoss = StopOrder('SELL', qty, stopPrice=loss_price)
+    stopLoss.parentId = parentId
+    stopLoss.transmit = True  # Last transmits the chain
+
+    # Place orders
+    trade = ib.placeOrder(contract, parent)
+    ib.placeOrder(contract, takeProfit)
+    ib.placeOrder(contract, stopLoss)
+
+    print("Order was submitted, current status:", trade.orderStatus.status)
+
+    # 7. Wait for it to fill
+    ib.sleep(1)
+    while trade.isActive():
+        ib.waitOnUpdate()
+
+    print("Final status:", trade.orderStatus.status)
+    if trade.orderStatus.status == 'Filled':
+        print("Filled at average price:", trade.orderStatus.avgFillPrice)
+
+# Useful to stop stop orders and limit orders from conflicting with each other 
+def PlaceShortSellBracketOrder(ticker, profitMult, lossMult):
     contract = Stock(ticker, 'SMART', 'USD')
     ib.qualifyContracts(contract)
     
@@ -180,45 +234,30 @@ def PlaceBuyBracketOrder(ticker, profitMult, lossMult):
     loss_price   = round(current_price * lossMult, 2)
     qty = GetSharesBuyable(current_price)
 
-    parent = MarketOrder('BUY', qty)
-    parent.transmit = False
+    # Get a new orderId for parent
+    parentId = ib.client.getReqId()
 
-    takeProfit = LimitOrder('SELL', qty, profit_price)
-    takeProfit.parentId = parent.orderId
-    takeProfit.transmit = False
-
-    stopLoss = StopOrder('SELL', qty, loss_price)
-    stopLoss.parentId = parent.orderId
-    stopLoss.transmit = True  # Last one transmits the whole chain
-
-    ib.placeOrder(contract, parent)
-    ib.placeOrder(contract, takeProfit)
-    ib.placeOrder(contract, stopLoss)
-
-# Useful to stop stop orders and limit orders from conflicting with each other 
-def PlaceShortSellBracketOrder(ticker, profitMult, lossMult):
-    contract = Stock(ticker, 'SMART', 'USD')
-    ib.qualifyContracts(contract)
-    
-    current_price = GetPriceOfTicker(ticker)  # Your own function
-    profit_price = round(current_price * profitMult, 2)
-    loss_price   = round(current_price * lossMult, 2)
-    qty = GetSharesBuyable(current_price)
-
+    # Parent (market sell)
     parent = MarketOrder('SELL', qty)
+    parent.orderId = parentId
     parent.transmit = False
 
+    # Take-profit (limit buy)
     takeProfit = LimitOrder('BUY', qty, profit_price)
-    takeProfit.parentId = parent.orderId
+    takeProfit.parentId = parentId
     takeProfit.transmit = False
 
-    stopLoss = StopOrder('BUY', qty, loss_price)
-    stopLoss.parentId = parent.orderId
-    stopLoss.transmit = True  # Last one transmits the whole chain
+    # Stop-loss (stop buy)
+    stopLoss = StopOrder('BUY', qty, stopPrice=loss_price)
+    stopLoss.parentId = parentId
+    stopLoss.transmit = True  # Last one transmits the chain
 
+    # Place orders
     ib.placeOrder(contract, parent)
     ib.placeOrder(contract, takeProfit)
     ib.placeOrder(contract, stopLoss)
+
+    print("Short-sell bracket submitted")
 
 def Quit():
     ib.disconnect()
@@ -238,40 +277,60 @@ def GetSharesOwned(ticker):
 
     return shares_owned
 
-# Number of shares buyable based on available funds and given current price
+# returns shares buyable
 def GetSharesBuyable(price):
     # 2. Get account balance
     account_info = ib.accountSummary()
-    available_funds = float(account_info.loc['AvailableFunds', 'value'] * 0.0005)  # Use 50% of available funds
 
-    # 4. Calculate max shares (accounting for commissions)
-    max_shares = int(available_funds // price)
+    # Extract 'AvailableFunds' for USD (or your currency)
+    available_funds_entry = next((row for row in account_info if row.tag == 'AvailableFunds' and row.currency == 'CAD'), None)
+    
+    available_funds_value = float(available_funds_entry.value)
 
-    return max_shares
+    if isLive:
+        available_funds = available_funds_value * 0.5  # Use 50% of available funds
+    else:
+        available_funds = (available_funds_value - PaperMoneyStart) * 0.5  # Use 1k plus whatever we've made
 
-def GetPriceOfTicker(ticker):
-    # 1. Define the contract (example: Apple stock)
+    print(f"Available funds: {available_funds}, price: {price}, shares: {available_funds // price}")
+
+
+    return 1  # Integer number of shares
+
+def GetPriceOfTicker(ticker, timeout=5):
     contract = Stock(ticker, 'SMART', 'USD')
-    ib.qualifyContracts(contract)  # Ensures contract details are fetched
+    ib.qualifyContracts(contract)
 
-    # 2. Get current market price
-    market_data = ib.reqMktData(contract)
-    ib.sleep(1)  # Wait for price to populate
-    price = float(market_data.last if market_data.last else market_data.close)
+    ticker2 = yf.Ticker(ticker)
+    
+    data = ticker2.history(period="1d", interval="1m")
 
-    return price
+    # Try different price fields in order of reliability
+    price = data['Close'].iloc[-1]
+
+    if price is None:
+        raise ValueError(f"Could not get market price for {ticker}")
+
+    return float(price)
 
 def Start(live=False):
     if live:
-        ib.connect('127.0.0.1', 4002, clientId=1)
-    else:
         ib.connect('127.0.0.1', 4001, clientId=1)
+    else:
+        ib.connect('127.0.0.1', 4002, clientId=1)
 
     #TODO: Make the if else statement more compact/pythonic
     
 def print_holdings():
     positions = ib.positions()
+    account_info = ib.accountSummary()
+
+    # Extract 'AvailableFunds' for USD (or your currency)
+    available_funds_entry = next((row for row in account_info if row.tag == 'AvailableFunds' and row.currency == 'CAD'), None)
     
+    available_funds_value = float(available_funds_entry.value)
+
+    print(f"Cash availble: {available_funds_value}")
     if not positions:
         print("You don't currently hold any positions.")
         return
@@ -286,9 +345,4 @@ def print_holdings():
 
 print("TESTING!!!!")
 
-Start(live=False)
-
-print("TESTING32!!!!")
-
-Buy("AAPL") 
 # Example usage

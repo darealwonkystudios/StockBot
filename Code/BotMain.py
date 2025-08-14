@@ -167,17 +167,19 @@ def main(forms):
             if file.endswith(".txt"):
                 file_path = os.path.join(root, file)
                 docs.extend(parse_sec_submission(file_path))
+
     for doc in docs:
         TextWall += ((f"File Type: {doc['type']}\nQuick Description: {doc['description']}\nText: {doc['text'][:30000]}\n{'-'*40}"))
+    
     print(TextWall)
 
 def Initialize():
-    brokerBot.Start()
+    brokerBot.Start(False)
 
 def WaitingLoop():
     while True:
 
-        if dt.time().hour < 9 or dt.time().hour > 16:
+        if dt.datetime.now().hour < 9 or dt.datetime.now().hour > 16:
             print("Market is closed. Waiting for next trading day...")
             logger.info("Market is closed. Quitting...")
             exit()
@@ -197,28 +199,30 @@ def WaitingLoop():
 
 def poll_for_catalyst(boom):
    result =  chatBot.getresponse(f"Find the latest news on {boom.name} they are expecting a positive catalyst: {boom.event} today." +
-                                 "Find the expected news. if not found, then respond with N/A ONLY." +  
-                                 "else, read the news and guess if the news will make the stock price go up or not." +
-                                 "RESPOND WITH YES or NO ONLY.")
-   if result.lower() == "yes":
+                                 "Find the expected news. if not found or news found is neutral/unpredictable, then respond with NO ONLY." +  
+                                 "else, read the news and guess if the news will make the stock price go up or down. " +
+                                 "RESPOND WITH UP or DOWN ONLY.")
+   if result.lower() == "up":
         print(f"Positive news found for {boom.name} on {boom.event}. Buying stock...")
         
         logger.info(f"Positive news found for {boom.name} on {boom.event}. Buying stock...")
 
-        brokerBot.PlaceBuyBracketOrder(boom.ticker, 1.05, 0.95)
+        brokerBot.PlaceBuyBracketOrder(boom.ticker, 1.07, 0.94)
         
-   elif result.lower() == "no":
+   elif result.lower() == "down":
         print(f"No positive news found for {boom.name} on {boom.event}. short selling stock.")
 
         logger.info(f"No positive news found for {boom.name} on {boom.event}. short selling stock.")
 
-        brokerBot.PlaceShortSellBracketOrder(boom.ticker, 1.05, 0.95)
+        brokerBot.PlaceShortSellBracketOrder(boom.ticker, 1.07, 0.94)
 
-   elif result.lower() == "n/a":
+   elif result.lower() == "no":
         print(f"No news found for {boom.name} on {boom.event}. Not buying stock.")
 
         logger.info(f"No news found for {boom.name} on {boom.event}. Not buying stock.")
 
-#Initialize()
+print("Starting...")
+Initialize()
 
+logger.info("Stared")
 WaitingLoop()
