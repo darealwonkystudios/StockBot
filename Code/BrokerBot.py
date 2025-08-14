@@ -315,7 +315,7 @@ def GetPriceOfTicker(ticker, timeout=5):
 
 def Start(live=False):
     if live:
-        ib.connect('127.0.0.1', 4001, clientId=1)
+        ib.connect('127.0.0.1', 4001, clientId=1, timeout=90)
     else:
         ib.connect('127.0.0.1', 4002, clientId=1)
 
