@@ -222,11 +222,12 @@ def poll_for_catalyst(boom):
 
         logger.info(f"No news found for {boom.name} on {boom.event}. Not buying stock.")
 
-time.Sleep(300)  # Sleep to allow computer to start
+logger.info("Stared")
+time.sleep(300)  # Sleep to allow computer to start
 
 print("Starting...")
 Initialize()
 
 
-logger.info("Stared")
+logger.info("Stared2")
 WaitingLoop()
