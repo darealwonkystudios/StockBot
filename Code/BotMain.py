@@ -13,6 +13,7 @@ from dataclasses import dataclass
 import datetime as dt
 import logging
 from logging.handlers import RotatingFileHandler
+import time
 
 # Set up rotating log handler
 handler = RotatingFileHandler(
@@ -221,8 +222,11 @@ def poll_for_catalyst(boom):
 
         logger.info(f"No news found for {boom.name} on {boom.event}. Not buying stock.")
 
+time.Sleep(300)  # Sleep to allow computer to start
+
 print("Starting...")
 Initialize()
+
 
 logger.info("Stared")
 WaitingLoop()
