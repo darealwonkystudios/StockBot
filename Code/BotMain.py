@@ -201,7 +201,8 @@ def WaitingLoop():
 def poll_for_catalyst(boom):
    result =  chatBot.getresponse(f"Find the latest news on {boom.name} they are expecting a positive catalyst: {boom.event} today." +
                                  "Find the expected news. if not found or news found is neutral/unpredictable, then respond with NO ONLY." +  
-                                 "else, read the news and guess if the news will make the stock price go up or down. " +
+                                 "else, read the news and guess if the news will make the stock price go up based or down." +
+                                 "LOOK FOR THE NEWS, ONLY BUY IF YOU FIND THE ACTUAL POSITIVE CATLYST. if the data/readout/whatever hasn't been released, don't buy."+
                                  "RESPOND WITH UP or DOWN ONLY.")
    if result.lower() == "up":
         print(f"Positive news found for {boom.name} on {boom.event}. Buying stock...")
