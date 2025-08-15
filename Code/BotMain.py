@@ -196,7 +196,7 @@ def WaitingLoop():
 
         
         print("Waiting...")
-        brokerBot.ib.sleep(120)
+        brokerBot.ib.sleep(600)
 
 def poll_for_catalyst(boom):
    result =  chatBot.getresponse(f"Find the latest news on {boom.name} they are expecting a positive catalyst: {boom.event} today." +
