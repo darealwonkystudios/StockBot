@@ -175,7 +175,7 @@ def main(forms):
     print(TextWall)
 
 def Initialize():
-    brokerBot.Start(True)
+    brokerBot.Start(False)
 
 def WaitingLoop():
     while True:
